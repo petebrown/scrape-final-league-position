@@ -16,7 +16,7 @@ driver = webdriver.Chrome(options=options, service=BraveService(ChromeDriverMana
 
 df = pd.read_csv("https://raw.githubusercontent.com/petebrown/update-results/main/data/results_df.csv", parse_dates=["game_date"])
 
-final_games = df.groupby("season").agg({"game_date": "max"}).sort_values("game_date", ascending=True).reset_index()
+final_games = df[(df.game_type == 'League') & (~df.competition.str.contains("Play-Off")) & (df.competition != "National League")].groupby("season").agg({"game_date": "max"}).sort_values("game_date", ascending=True).reset_index()
 
 df = df[df.game_date.isin(final_games.game_date)].copy()
 
@@ -26,7 +26,7 @@ df['year'] = df.game_date.dt.year
 
 df['table_url'] = df.apply(lambda x: construct_url(x.new_league_name, x.year), axis=1)
 
-table_urls = df[(df.game_type == 'League') & (df.new_league_name != 'national-league')].table_url.to_list()
+table_urls = df.table_url.to_list()
 
 tables_df = pd.DataFrame()
 for url in table_urls:
