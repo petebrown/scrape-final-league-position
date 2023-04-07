@@ -1,18 +1,14 @@
 import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as BraveService
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.utils import ChromeType
+import requests
 import logging
 
 def construct_url(division, year):
     url = f"https://www.11v11.com/league-tables/{division}/{year}/"
     return url
 
-options = webdriver.ChromeOptions()
-options.binary_location = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" # Path to Brave Browser (this is the default)
-
-driver = webdriver.Chrome(options=options, service=BraveService(ChromeDriverManager(chrome_type=ChromeType.BRAVE).install()))
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
+}
 
 df = pd.read_csv("https://raw.githubusercontent.com/petebrown/update-results/main/data/results_df.csv", parse_dates=["game_date"])
 
@@ -31,9 +27,9 @@ table_urls = df.table_url.to_list()
 tables_df = pd.DataFrame()
 for url in table_urls:
     try:    
-        driver.get(url)
+        r = requests.get(url, headers = headers)
 
-        doc = driver.page_source
+        doc = r.text
         table = pd.read_html(doc)[0]
         df = pd.DataFrame(table)
         df = df[['Pos', 'Team', 'Pld', 'W', 'D', 'L', 'GF', 'GA', 'Pts']]
@@ -44,8 +40,6 @@ for url in table_urls:
         logging.basicConfig(filename='error.log', filemode="w", encoding='utf-8', format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
         logging.warning('Failed trying to scrape %s', url)
         logging.error('Encountered an issue: %s', e)
-         
-driver.quit()
 
 try:
     tables_df.Pos = tables_df.Pos.astype(str).str.replace("doRowNumer();", "", regex=False)
